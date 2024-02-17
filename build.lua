@@ -66,16 +66,24 @@ buildTemplateVariables["build-info"] = "version = \"" .. version .. "\""
 buildTemplateVariables["build-modules"] = buildModules
 
 local nextPos = 1
-for k, v in pairs(buildTemplateVariables) do
-  local pattern = "--% " .. k
-  while true do
+while true do
+  local firstPattern, firstPatternPos, firstPatternEnd = nil, nil, nil
+  for k, v in pairs(buildTemplateVariables) do
+    local pattern = "--% " .. k
     local start, finish = buildTemplate:find(pattern, nextPos, true)
-    if not start then
-      break
+    if start and (not firstPattern or start < firstPatternPos) then
+      firstPattern = pattern
+      firstPatternPos = start
+      firstPatternEnd = finish
     end
-    buildTemplate = buildTemplate:sub(1, start - 1) .. v .. buildTemplate:sub(finish + 1)
-    nextPos = start + #v
   end
+  if not firstPattern then
+    break
+  end
+
+  local v = buildTemplateVariables[firstPattern:sub(5)]
+  buildTemplate = buildTemplate:sub(1, firstPatternPos - 1) .. v .. buildTemplate:sub(firstPatternEnd + 1)
+  nextPos = firstPatternPos + #v
 end
 
 local outFile, err = io.open(out, "w")
