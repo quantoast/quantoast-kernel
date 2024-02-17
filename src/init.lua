@@ -17,7 +17,7 @@ do
   local function loadRamFsModule(name)
     local module, err = initfs.read(name:gsub("%.", "/") .. ".lua")
     if not module then
-      error("error reading module " .. name:gsub("%.", "/") .. ": " .. err)
+      error("error reading module " .. name .. ": " .. err)
     end
     local func, err = load(module, "=" .. name, "t", _G)
     if not func then
@@ -37,6 +37,10 @@ do
       earlyLogger.warn(heldLogs[i].message)
     end
   end
+end
+
+while true do
+  coroutine.yield()
 end
 
 end

@@ -25,10 +25,24 @@ local function loadOpenComputersInitfs()
   return initfsFunc(initfsPath)
 end
 
+local function loadComputerCraftInitfs()
+  local guessedFile = "boot/initfs.lua"
+  local errorAppend = " (initfsguesser guessed ComputerCraft " .. guessedFile .. ")"
+
+  local initfsFunc, err = loadfile(guessedFile)
+  if not initfsFunc then
+    error("error loading initfs: " .. err  .. errorAppend)
+  end
+
+  return initfsFunc()
+end
+
 return {
   guessInitfs = function()
     if component then
       return loadOpenComputersInitfs()
+    elseif term then
+      return loadComputerCraftInitfs()
     else
       error("Could not guess how to load the initfs. Please pass it as the first argument to the kernel.")
     end
