@@ -22,8 +22,10 @@ end
 local function readModules(directory, moduleName, moduleTable)
   for file in lfs.dir(directory) do
     local path = directory .. "/" .. file
-    if lfs.attributes(path).mode == directory then
-      readModules(path, moduleName .. "." .. file, moduleTable)
+    if file == "." or file == ".." then
+      -- do nothing
+    elseif lfs.attributes(path).mode == "directory" then
+      readModules(path, moduleName .. file .. ".", moduleTable)
     elseif file:sub(-4) == ".lua" then
       local name = file:sub(1, -5)
       local file, err = io.open(path, "r")
@@ -32,7 +34,7 @@ local function readModules(directory, moduleName, moduleTable)
         end
       local code = file:read("*a")
       file:close()
-      moduleTable[name] = code
+      moduleTable[moduleName .. name] = code
     end
   end
 end
@@ -48,7 +50,7 @@ for k, v in pairs(modules) do
     numEscapes = numEscapes + 1
     escapes = string.rep("=", numEscapes)
   end
-  buildModules = buildModules .. k .. " = [" .. escapes .. "[" .. v .. "]" .. escapes .. "],\n"
+  buildModules = buildModules .. "[\"" .. k .. "\"]" .. " = [" .. escapes .. "[" .. v .. "]" .. escapes .. "],\n"
 end
 if #buildModules > 0 then
   buildModules = buildModules:sub(1, -3)
