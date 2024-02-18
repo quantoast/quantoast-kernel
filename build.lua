@@ -29,9 +29,9 @@ local function readModules(directory, moduleName, moduleTable)
     elseif file:sub(-4) == ".lua" then
       local name = file:sub(1, -5)
       local file, err = io.open(path, "r")
-        if not file then
-          error("error reading file " .. path .. ": " .. err)
-        end
+      if not file then
+        error("error reading file " .. path .. ": " .. err)
+      end
       local code = file:read("*a")
       file:close()
       moduleTable[moduleName .. name] = code
