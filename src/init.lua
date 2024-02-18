@@ -27,35 +27,38 @@ do
     return func()
   end
 
+  local log = require("modules.log")
   local earlyLogger = loadRamFsModule("init.earlylogger")
-  earlyLogger.info("Welcome to Quantoast! Kernel version " .. buildinfo.version)
-  earlyLogger.trace("initfs: " .. initfs.getName())
+  log.setBackend(earlyLogger)
+
+  log.info("Welcome to Quantoast! Kernel version " .. buildinfo.version)
+  log.trace("initfs: " .. initfs.getName())
   if #heldLogs > 0 then
-    earlyLogger.info("The next " .. #heldLogs .. " message(s) were held before logging init:")
+    log.info("The next " .. #heldLogs .. " message(s) were held before logging init:")
   end
   for i = 1, #heldLogs do
     if heldLogs[i].level == HELD_LOGS_WARN then
-      earlyLogger.warn(heldLogs[i].message)
+      log.warn(heldLogs[i].message)
     end
   end
 
   xpcall(function()
     if type(rootfs) == "table" then
-      earlyLogger.info("rootfs instance was passed through kernel arguments")
+      log.info("rootfs instance was passed through kernel arguments")
     else
       local rootfsId = rootfs or initfs.guessedRootFs
       rootfs = loadRamFsModule("init.rootfs").load(rootfsId)
     end
 
-    earlyLogger.info("Creating VFS tree")
+    log.info("Creating VFS tree")
     local vfs = require("modules.vfs")
     loadedModules["system.vfs"] = vfs
 
-    earlyLogger.info("Mounting rootfs")
+    log.info("Mounting rootfs")
     vfs.mount("/", rootfs)
   end, function(err)
-    earlyLogger.error("error during kernel init: " .. err)
-    if debug then earlyLogger.error(debug.traceback()) end
+    log.error("error during kernel init: " .. err)
+    if debug then log.error(debug.traceback()) end
     while true do
       coroutine.yield()
     end
