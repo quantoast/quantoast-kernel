@@ -1,19 +1,23 @@
+local vio = require("modules.vio")
+
 local function getVfsNode(parent, name)
-    if parent.children[name] then
-      return parent.children[name]
-    end
-    local node = {
-      parent = parent
-    }
-    if parent.backing:isDirectory(name) then
-      node.children = {}
-    end
-    if parent then
-      parent.children[name] = node
-      if parent.backing then
-        node.backing = parent.backing:getChild(name)
+  if parent.children[name] then
+    return parent.children[name]
+  end
+  local node = {
+    parent = parent
+  }
+  if parent then
+    parent.children[name] = node
+    if parent.backing then
+      node.backing = parent.backing:getChild(name)
+      if parent.backing:isDirectory(name) then
+        node.children = {}
       end
     end
+  end
+
+  return node
 end
 
 local function getVfsNodeLink(parent, name)
@@ -31,6 +35,10 @@ local function createVfsNode(parent, name, nodeType)
   }
   if nodeType == "directory" then
     node.children = {}
+  elseif nodeType == "file" and not parent.backing then
+    node.content = vio.createFile()
+  elseif type(nodeType) == "table" then
+    node.link = nodeType
   end
   if parent then
     if parent.children[name] or parent.backing:hasChild(name) then
@@ -42,8 +50,6 @@ local function createVfsNode(parent, name, nodeType)
         node.backing = parent.backing:createFile(name)
       elseif nodeType == "directory" then
         node.backing = parent.backing:createDirectory(name)
-      elseif type(nodeType) == "table" then
-        node.link = nodeType
       end
     end
   end
@@ -65,9 +71,6 @@ local function resolvePath(path)
 end
 
 local function traverse(node, name, requireVfs)
-  if not node.children[name] and not requireVfs then
-    return nil
-  end
   local child = node.children[name]
   child = child or getVfsNodeLink(node, name)
   if requireVfs then
@@ -198,6 +201,23 @@ function vfsTree.link(target, link)
   end
 ---@diagnostic disable-next-line: need-check-nil
   node.children[name] = createVfsNode(node, name, traverse(vfsTree, target, false))
+end
+
+function vfsTree.open(file, mode)
+  local parentNode, name = traverseToParent(file, false)
+  if parentNode and not parentNode.backing then
+    parentNode, name = traverseToParent(file, true)
+  end
+  if not parentNode then
+    error("No such file")
+  end
+
+  if parentNode.backing then
+    return parentNode.backing:open(name, mode)
+  end
+
+  local node = traverse(parentNode, name, true)
+  return node.content:open(mode)
 end
 
 return vfsTree
